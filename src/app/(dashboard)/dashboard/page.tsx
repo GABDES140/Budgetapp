@@ -1,10 +1,5 @@
-import { DashboardCanvas } from "@/components/layout/dashboard-canvas";
-import { PageTransition } from "@/components/layout/page-transition";
+import { DashboardPage as DashboardFeaturePage } from "@/features/dashboard/dashboard-page";
 
 export default function DashboardPage() {
-  return (
-    <PageTransition>
-      <DashboardCanvas />
-    </PageTransition>
-  );
+  return <DashboardFeaturePage />;
 }
