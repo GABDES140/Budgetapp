@@ -1,12 +1,5 @@
-import { Target } from "lucide-react";
-
-import { EmptyWorkspace } from "@/components/layout/empty-workspace";
-import { PageTransition } from "@/components/layout/page-transition";
+import { GoalsPage as GoalsFeaturePage } from "@/features/goals/goals-page";
 
 export default function ObjectifsPage() {
-  return (
-    <PageTransition>
-      <EmptyWorkspace icon={Target} />
-    </PageTransition>
-  );
+  return <GoalsFeaturePage />;
 }

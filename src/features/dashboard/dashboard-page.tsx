@@ -443,22 +443,28 @@ function GoalsProgressCard({ summary }: { summary: DashboardSummary }) {
         <CardDescription>Objectifs financiers lies au budget actif.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">
-        {summary.goalProgress.map((goal) => (
-          <div key={goal.id} className="rounded-lg border p-4">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate font-medium">{goal.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatCurrencyAmount(goal.currentAmount, goal.currency)} /{" "}
-                  {formatCurrencyAmount(goal.targetAmount, goal.currency)}
-                </p>
+        {summary.goalProgress.length > 0 ? (
+          summary.goalProgress.map((goal) => (
+            <div key={goal.id} className="rounded-lg border p-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{goal.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatCurrencyAmount(goal.currentAmount, goal.currency)} /{" "}
+                    {formatCurrencyAmount(goal.targetAmount, goal.currency)}
+                  </p>
+                </div>
+                <Target className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               </div>
-              <Target className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <Progress value={goal.progressPercent} />
+              <p className="mt-2 text-xs text-muted-foreground">{Math.round(goal.progressPercent)}% atteint</p>
             </div>
-            <Progress value={goal.progressPercent} />
-            <p className="mt-2 text-xs text-muted-foreground">{Math.round(goal.progressPercent)}% complete</p>
+          ))
+        ) : (
+          <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground md:col-span-2">
+            Aucun objectif actif pour ce budget.
           </div>
-        ))}
+        )}
       </CardContent>
     </Card>
   );
