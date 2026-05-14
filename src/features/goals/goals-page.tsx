@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/features/auth/auth-provider";
 import { SUPPORTED_CURRENCIES } from "@/lib/constants/currencies";
 import { formatCurrencyAmount } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ function createEmptyForm(defaultCurrency = "CAD"): GoalFormState {
 }
 
 export function GoalsPage() {
+  const { session } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -93,7 +95,8 @@ export function GoalsPage() {
 
   async function loadData(nextBudgetId?: EntityId) {
     const data = await localBudgetAppDataService.getData();
-    const user = data.users.find((item) => item.id === activeUserId) ?? data.users[0];
+    const preferredUserId = activeUserId || session?.userId;
+    const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
     const budget =
       data.budgets.find((item) => item.id === nextBudgetId) ??
       data.budgets.find((item) => item.id === activeBudgetId) ??

@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/features/auth/auth-provider";
 import { SUPPORTED_CURRENCIES } from "@/lib/constants/currencies";
 import { formatCurrencyAmount } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -92,6 +93,7 @@ const emptyFilters: AnalyticsFilters = {
 };
 
 export function AnalyticsPage() {
+  const { session } = useAuth();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [filters, setFilters] = useState<AnalyticsFilters>(emptyFilters);
@@ -107,7 +109,8 @@ export function AnalyticsPage() {
 
   async function buildAnalyticsState(nextFilters?: Partial<AnalyticsFilters>) {
     let data = await localBudgetAppDataService.getData();
-    const user = data.users.find((item) => item.id === nextFilters?.userId) ?? data.users[0];
+    const preferredUserId = (nextFilters?.userId ?? filters.userId) || session?.userId;
+    const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
     const budget =
       data.budgets.find((item) => item.id === nextFilters?.budgetId) ??
       data.budgets.find((item) => item.ownerId === user?.id) ??

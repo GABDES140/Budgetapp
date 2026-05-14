@@ -70,7 +70,38 @@ class LocalBudgetAppDataService implements BudgetAppDataRepository {
   async updateUser(userId: EntityId, input: Partial<Omit<User, "id" | "createdAt" | "updatedAt">>) {
     return this.mutate((data) => {
       const user = findRequired(data.users, userId, "Utilisateur introuvable");
+      if (input.email) {
+        const normalizedEmail = input.email.toLowerCase();
+        validateEmail(normalizedEmail);
+        const existingUser = data.users.find((item) => item.email.toLowerCase() === normalizedEmail && item.id !== userId);
+
+        if (existingUser) {
+          throw new Error("Cette adresse courriel est deja utilisee.");
+        }
+      }
       Object.assign(user, input, { updatedAt: nowIsoString() });
+      return user;
+    });
+  }
+
+  async createUser(input: Omit<User, "id" | "createdAt" | "updatedAt">) {
+    validateUser(input);
+
+    return this.mutate((data) => {
+      const existingUser = data.users.find((user) => user.email.toLowerCase() === input.email.toLowerCase());
+
+      if (existingUser) {
+        throw new Error("Cette adresse courriel est deja utilisee.");
+      }
+
+      const user: User = {
+        ...input,
+        id: createEntityId("user"),
+        createdAt: nowIsoString(),
+        updatedAt: nowIsoString(),
+      };
+
+      data.users.push(user);
       return user;
     });
   }
@@ -343,6 +374,17 @@ function validateBudget(input: Pick<Budget, "monthlyLimit" | "defaultCurrency" |
   assertRequired(input.ownerId, "Un budget doit avoir un proprietaire.");
 }
 
+function validateUser(input: Pick<User, "name" | "email" | "passwordHash" | "defaultCurrency" | "theme">) {
+  assertRequired(input.name, "Un utilisateur doit avoir un nom.");
+  validateEmail(input.email);
+  assertRequired(input.passwordHash, "Un mot de passe est requis.");
+  assertCurrency(input.defaultCurrency);
+
+  if (!["light", "dark", "system"].includes(input.theme)) {
+    throw new Error("Le theme utilisateur doit etre light, dark ou system.");
+  }
+}
+
 function validateTransaction(
   input: Pick<Transaction, "amount" | "currency" | "date" | "type" | "budgetId" | "userId" | "categoryId">,
 ) {
@@ -384,6 +426,12 @@ function validateGoal(input: Pick<Goal, "targetAmount" | "currentAmount" | "curr
 function assertCurrency(currency: string) {
   if (!CURRENCY_PATTERN.test(currency)) {
     throw new Error("La devise doit respecter le format ISO a trois lettres, ex: CAD, USD, EUR.");
+  }
+}
+
+function validateEmail(email: string) {
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    throw new Error("Le courriel doit etre valide.");
   }
 }
 

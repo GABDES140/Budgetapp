@@ -1,9 +1,11 @@
 import { mockBudgetAppData } from "@/data/mock-data";
-import type { BudgetAppData } from "@/types";
+import type { AuthSession, BudgetAppData } from "@/types";
 
 const STORAGE_KEY = "budgetapp.local-data.v1";
+const SESSION_STORAGE_KEY = "budgetapp.auth-session.v1";
 
 let memoryData = cloneBudgetAppData(mockBudgetAppData);
+let memorySession: AuthSession | null = null;
 
 function hasLocalStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -66,4 +68,43 @@ export function resetLocalBudgetAppData() {
   const initialData = cloneBudgetAppData(mockBudgetAppData);
   writeLocalBudgetAppData(initialData);
   return initialData;
+}
+
+export function readLocalAuthSession() {
+  if (!hasLocalStorage()) {
+    return memorySession;
+  }
+
+  const rawSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
+
+  if (!rawSession) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawSession) as AuthSession;
+  } catch {
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+    return null;
+  }
+}
+
+export function writeLocalAuthSession(session: AuthSession) {
+  memorySession = session;
+
+  if (!hasLocalStorage()) {
+    return;
+  }
+
+  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+}
+
+export function clearLocalAuthSession() {
+  memorySession = null;
+
+  if (!hasLocalStorage()) {
+    return;
+  }
+
+  window.localStorage.removeItem(SESSION_STORAGE_KEY);
 }

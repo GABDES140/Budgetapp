@@ -29,6 +29,7 @@ import { PageTransition } from "@/components/layout/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/features/auth/auth-provider";
 import { formatCurrencyAmount, formatTransactionDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { getDashboardSummary, type DashboardSummary } from "@/services/analytics-service";
@@ -81,6 +82,7 @@ const widgetDefinitions: WidgetDefinition[] = [
 ];
 
 export function DashboardPage() {
+  const { session } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [activeUserId, setActiveUserId] = useState<EntityId>("");
@@ -91,6 +93,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     void loadDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activeUser = users.find((user) => user.id === activeUserId);
@@ -108,7 +111,8 @@ export function DashboardPage() {
 
   async function loadDashboard(nextBudgetId?: EntityId, nextUserId?: EntityId) {
     let data = await localBudgetAppDataService.getData();
-    const user = data.users.find((item) => item.id === nextUserId) ?? data.users[0];
+    const preferredUserId = nextUserId ?? activeUserId ?? session?.userId;
+    const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
     const budget =
       data.budgets.find((item) => item.id === nextBudgetId) ??
       data.budgets.find((item) => item.ownerId === user?.id) ??

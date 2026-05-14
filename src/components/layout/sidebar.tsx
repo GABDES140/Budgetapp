@@ -8,6 +8,7 @@ import { AppLogo } from "@/components/layout/app-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/features/auth/auth-provider";
 import { APP_NAVIGATION } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ type SidebarProps = {
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
+  const { logout, user } = useAuth();
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -49,12 +51,12 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         <div className="rounded-lg border bg-card p-3 text-card-foreground">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">Espace local</p>
-              <p className="truncate text-xs text-muted-foreground">MVP</p>
+              <p className="truncate text-sm font-medium">{user?.name ?? "Espace local"}</p>
+              <p className="truncate text-xs text-muted-foreground">{user?.email ?? "MVP"}</p>
             </div>
             <Badge variant="muted">V1</Badge>
           </div>
-          <Button className="mt-3 w-full justify-start" variant="ghost" size="sm" disabled>
+          <Button className="mt-3 w-full justify-start" variant="ghost" size="sm" onClick={logout}>
             <LogOut className="h-4 w-4" aria-hidden="true" />
             Deconnexion
           </Button>

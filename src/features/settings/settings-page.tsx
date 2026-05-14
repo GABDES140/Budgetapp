@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/features/auth/auth-provider";
 import {
   buildTemplateWorkbook,
   buildTransactionsExport,
@@ -30,6 +31,7 @@ import { localBudgetAppDataService } from "@/services/local-data-service";
 import type { Budget, Category, EntityId, Subcategory, User } from "@/types";
 
 export function SettingsPage() {
+  const { session } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -51,7 +53,8 @@ export function SettingsPage() {
 
   async function loadData(nextBudgetId?: EntityId) {
     const data = await localBudgetAppDataService.getData();
-    const user = data.users.find((item) => item.id === activeUserId) ?? data.users[0];
+    const preferredUserId = activeUserId || session?.userId;
+    const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
     const budget =
       data.budgets.find((item) => item.id === nextBudgetId) ??
       data.budgets.find((item) => item.id === activeBudgetId) ??
@@ -249,7 +252,7 @@ export function SettingsPage() {
                   </p>
                   <Button className="mt-4" type="button" onClick={() => void handleConfirmImport()} disabled={isImporting || preview.validRows.length === 0}>
                     <FileUp className="h-4 w-4" aria-hidden="true" />
-                    {isImporting ? "Import en cours..." : "Confirmer l&apos;import"}
+                    {isImporting ? "Import en cours..." : "Confirmer l'import"}
                   </Button>
                 </div>
               ) : null}

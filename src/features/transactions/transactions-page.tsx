@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/features/auth/auth-provider";
 import { SUPPORTED_CURRENCIES } from "@/lib/constants/currencies";
 import { formatCurrencyAmount, formatTransactionDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -107,6 +108,7 @@ function createDefaultForm(
 }
 
 export function TransactionsPage() {
+  const { session } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -124,6 +126,7 @@ export function TransactionsPage() {
 
   useEffect(() => {
     void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activeBudget = budgets.find((budget) => budget.id === activeBudgetId);
@@ -202,7 +205,7 @@ export function TransactionsPage() {
 
   async function loadData() {
     const data = await localBudgetAppDataService.getData();
-    const defaultUser = data.users[0];
+    const defaultUser = data.users.find((user) => user.id === session?.userId) ?? data.users[0];
     const defaultBudget = data.budgets.find((budget) => budget.ownerId === defaultUser?.id) ?? data.budgets[0];
 
     setUsers(data.users);

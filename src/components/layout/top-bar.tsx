@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/features/auth/auth-provider";
 import type { AppNavigationItem } from "@/lib/constants/navigation";
 
 type TopBarProps = {
@@ -15,6 +16,7 @@ type TopBarProps = {
 
 export function TopBar({ activeItem }: TopBarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { logout, user } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6 lg:px-8">
@@ -36,6 +38,13 @@ export function TopBar({ activeItem }: TopBarProps) {
       </div>
 
       <ThemeToggle />
+      <div className="hidden min-w-0 text-right text-xs text-muted-foreground sm:block">
+        <p className="truncate font-medium text-foreground">{user?.name ?? "Session locale"}</p>
+        <p className="truncate">{user?.email ?? ""}</p>
+      </div>
+      <Button variant="outline" size="icon" aria-label="Se deconnecter" onClick={logout}>
+        <LogOut className="h-4 w-4" aria-hidden="true" />
+      </Button>
     </header>
   );
 }

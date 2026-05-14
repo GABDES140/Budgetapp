@@ -174,3 +174,17 @@ export type CreateFinancialIndicatorPreferenceInput = Omit<
 export type UpdateFinancialIndicatorPreferenceInput = Partial<
   Omit<FinancialIndicatorPreference, "id" | "createdAt" | "updatedAt">
 >;
+export type AuthSession = {
+  userId: EntityId;
+  loggedInAt: ISODateTimeString;
+};
+export type RegisterUserInput = {
+  name: string;
+  email: string;
+  password: string;
+  defaultCurrency: CurrencyCode;
+};
+export type LoginUserInput = {
+  email: string;
+  password: string;
+};
