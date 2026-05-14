@@ -162,6 +162,12 @@ class LocalBudgetAppDataService implements BudgetAppDataRepository {
     return data.categories.filter((category) => category.budgetId === null || !budgetId || category.budgetId === budgetId);
   }
 
+  async listSubcategories(categoryId?: EntityId) {
+    const data = await this.getData();
+
+    return data.subcategories.filter((subcategory) => !categoryId || subcategory.categoryId === categoryId);
+  }
+
   async createCategory(input: CreateCategoryInput) {
     validateCategory(input);
 
@@ -305,7 +311,9 @@ function validateTransaction(
   assertRequired(input.date, "Une transaction doit avoir une date.");
   assertRequired(input.budgetId, "Une transaction doit etre associee a un budget.");
   assertRequired(input.userId, "Une transaction doit etre associee a un utilisateur.");
-  assertRequired(input.categoryId, "Une transaction doit etre associee a une categorie.");
+  if (input.type === "expense") {
+    assertRequired(input.categoryId, "Une depense doit etre associee a une categorie.");
+  }
 
   if (input.type !== "income" && input.type !== "expense") {
     throw new Error("Une transaction doit etre de type income ou expense.");

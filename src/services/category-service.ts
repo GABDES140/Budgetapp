@@ -5,6 +5,10 @@ export function getCategories(budgetId?: EntityId) {
   return localBudgetAppDataService.listCategories(budgetId);
 }
 
+export function getSubcategories(categoryId?: EntityId) {
+  return localBudgetAppDataService.listSubcategories(categoryId);
+}
+
 export function createCategory(input: CreateCategoryInput) {
   return localBudgetAppDataService.createCategory(input);
 }

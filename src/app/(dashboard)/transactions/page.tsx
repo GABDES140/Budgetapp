@@ -1,12 +1,5 @@
-import { ReceiptText } from "lucide-react";
+import { TransactionsPage as TransactionsFeaturePage } from "@/features/transactions/transactions-page";
 
-import { EmptyWorkspace } from "@/components/layout/empty-workspace";
-import { PageTransition } from "@/components/layout/page-transition";
-
-export default function TransactionsPage() {
-  return (
-    <PageTransition>
-      <EmptyWorkspace icon={ReceiptText} />
-    </PageTransition>
-  );
+export default function TransactionsRoutePage() {
+  return <TransactionsFeaturePage />;
 }
