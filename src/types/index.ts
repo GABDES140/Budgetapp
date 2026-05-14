@@ -167,3 +167,10 @@ export type CreateGoalInput = Omit<Goal, "id" | "createdAt" | "updatedAt">;
 export type UpdateGoalInput = Partial<CreateGoalInput>;
 export type CreateWidgetConfigInput = Omit<WidgetConfig, "id" | "createdAt" | "updatedAt">;
 export type UpdateWidgetConfigInput = Partial<Omit<WidgetConfig, "id" | "createdAt" | "updatedAt">>;
+export type CreateFinancialIndicatorPreferenceInput = Omit<
+  FinancialIndicatorPreference,
+  "id" | "createdAt" | "updatedAt"
+>;
+export type UpdateFinancialIndicatorPreferenceInput = Partial<
+  Omit<FinancialIndicatorPreference, "id" | "createdAt" | "updatedAt">
+>;

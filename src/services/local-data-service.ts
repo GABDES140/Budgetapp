@@ -9,14 +9,17 @@ import type {
   Budget,
   BudgetAppData,
   Category,
+  CreateFinancialIndicatorPreferenceInput,
   CreateBudgetInput,
   CreateCategoryInput,
   CreateGoalInput,
   CreateTransactionInput,
   CreateWidgetConfigInput,
   EntityId,
+  FinancialIndicatorPreference,
   Goal,
   Transaction,
+  UpdateFinancialIndicatorPreferenceInput,
   UpdateBudgetInput,
   UpdateCategoryInput,
   UpdateGoalInput,
@@ -276,6 +279,43 @@ class LocalBudgetAppDataService implements BudgetAppDataRepository {
       const widgetConfig = findRequired(data.widgetConfigs, widgetConfigId, "Configuration de widget introuvable");
       Object.assign(widgetConfig, input, { updatedAt: nowIsoString() });
       return widgetConfig;
+    });
+  }
+
+  async listFinancialIndicatorPreferences(budgetId?: EntityId, userId?: EntityId) {
+    const data = await this.getData();
+
+    return data.financialIndicatorPreferences.filter((preference) => {
+      return (!budgetId || preference.budgetId === budgetId) && (!userId || preference.userId === userId);
+    });
+  }
+
+  async createFinancialIndicatorPreference(input: CreateFinancialIndicatorPreferenceInput) {
+    return this.mutate((data) => {
+      const preference: FinancialIndicatorPreference = {
+        ...input,
+        id: createEntityId("indicator"),
+        createdAt: nowIsoString(),
+        updatedAt: nowIsoString(),
+      };
+
+      data.financialIndicatorPreferences.push(preference);
+      return preference;
+    });
+  }
+
+  async updateFinancialIndicatorPreference(
+    preferenceId: EntityId,
+    input: UpdateFinancialIndicatorPreferenceInput,
+  ) {
+    return this.mutate((data) => {
+      const preference = findRequired(
+        data.financialIndicatorPreferences,
+        preferenceId,
+        "Preference d'indicateur introuvable",
+      );
+      Object.assign(preference, input, { updatedAt: nowIsoString() });
+      return preference;
     });
   }
 
