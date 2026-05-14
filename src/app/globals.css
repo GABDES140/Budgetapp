@@ -29,9 +29,9 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 47.4% 7.2%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 47.4% 7.2%;
     --popover-foreground: 210 40% 98%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
@@ -55,6 +55,6 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply min-h-screen bg-background text-foreground antialiased;
   }
 }

@@ -7,18 +7,30 @@ export type CategoryType = "income" | "expense" | "both";
 export type RecurringFrequency = "weekly" | "monthly" | "yearly";
 export type GoalStatus = "active" | "completed" | "archived";
 export type ImportBatchStatus = "pending" | "imported" | "failed";
+export type EntityId = string;
+export type CurrencyCode = string;
+export type ISODateString = string;
+export type ISODateTimeString = string;
+export type WidgetKey =
+  | "monthly-balance"
+  | "income-expense-summary"
+  | "budget-progress"
+  | "expense-category-breakdown"
+  | "recent-transactions"
+  | "goals-progress"
+  | "financial-health";
 
 export interface TimestampedEntity {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
+  id: EntityId;
+  createdAt: ISODateTimeString;
+  updatedAt: ISODateTimeString;
 }
 
 export interface User extends TimestampedEntity {
   name: string;
   email: string;
   passwordHash: string;
-  defaultCurrency: string;
+  defaultCurrency: CurrencyCode;
   theme: ThemePreference;
 }
 
@@ -26,46 +38,46 @@ export interface Budget extends TimestampedEntity {
   name: string;
   type: BudgetType;
   monthlyLimit: number;
-  defaultCurrency: string;
-  ownerId: string;
+  defaultCurrency: CurrencyCode;
+  ownerId: EntityId;
 }
 
 export interface BudgetMember {
-  id: string;
-  budgetId: string;
-  userId: string;
+  id: EntityId;
+  budgetId: EntityId;
+  userId: EntityId;
   role: BudgetRole;
-  joinedAt: string;
+  joinedAt: ISODateTimeString;
 }
 
 export interface Invitation {
-  id: string;
-  budgetId: string;
+  id: EntityId;
+  budgetId: EntityId;
   email: string;
   status: InvitationStatus;
   token: string;
-  createdBy: string;
-  createdAt: string;
-  expiresAt: string;
+  createdBy: EntityId;
+  createdAt: ISODateTimeString;
+  expiresAt: ISODateTimeString;
 }
 
 export interface Transaction extends TimestampedEntity {
-  budgetId: string;
-  userId: string;
+  budgetId: EntityId;
+  userId: EntityId;
   type: TransactionType;
   amount: number;
-  currency: string;
-  date: string;
+  currency: CurrencyCode;
+  date: ISODateString;
   description: string;
-  categoryId: string;
-  subcategoryId: string | null;
+  categoryId: EntityId;
+  subcategoryId: EntityId | null;
   notes: string | null;
   isRecurring: boolean;
-  recurringRuleId: string | null;
+  recurringRuleId: EntityId | null;
 }
 
 export interface Category extends TimestampedEntity {
-  budgetId: string | null;
+  budgetId: EntityId | null;
   name: string;
   type: CategoryType;
   color: string;
@@ -74,56 +86,84 @@ export interface Category extends TimestampedEntity {
 }
 
 export interface Subcategory extends TimestampedEntity {
-  categoryId: string;
+  categoryId: EntityId;
   name: string;
 }
 
 export interface RecurringRule extends TimestampedEntity {
-  budgetId: string;
-  userId: string;
-  transactionTemplateId: string | null;
+  budgetId: EntityId;
+  userId: EntityId;
+  transactionTemplateId: EntityId | null;
   frequency: RecurringFrequency;
-  startDate: string;
-  endDate: string | null;
-  nextOccurrenceDate: string;
+  startDate: ISODateString;
+  endDate: ISODateString | null;
+  nextOccurrenceDate: ISODateString;
   isActive: boolean;
 }
 
 export interface Goal extends TimestampedEntity {
-  budgetId: string;
+  budgetId: EntityId;
   name: string;
   description: string | null;
   targetAmount: number;
   currentAmount: number;
-  currency: string;
-  targetDate: string | null;
+  currency: CurrencyCode;
+  targetDate: ISODateString | null;
   status: GoalStatus;
 }
 
-export interface DashboardWidgetPreference extends TimestampedEntity {
-  userId: string;
-  budgetId: string;
-  widgetKey: string;
+export interface WidgetConfig extends TimestampedEntity {
+  userId: EntityId;
+  budgetId: EntityId;
+  widgetKey: WidgetKey;
   isEnabled: boolean;
   position: number;
   config: Record<string, unknown>;
 }
 
+export type DashboardWidgetPreference = WidgetConfig;
+
 export interface FinancialIndicatorPreference extends TimestampedEntity {
-  userId: string;
-  budgetId: string;
+  userId: EntityId;
+  budgetId: EntityId;
   indicatorKey: string;
   isEnabled: boolean;
   config: Record<string, unknown>;
 }
 
 export interface ImportBatch {
-  id: string;
-  budgetId: string;
-  userId: string;
+  id: EntityId;
+  budgetId: EntityId;
+  userId: EntityId;
   filename: string;
   status: ImportBatchStatus;
   rowCount: number;
   errorCount: number;
-  createdAt: string;
+  createdAt: ISODateTimeString;
 }
+
+export interface BudgetAppData {
+  users: User[];
+  budgets: Budget[];
+  budgetMembers: BudgetMember[];
+  invitations: Invitation[];
+  transactions: Transaction[];
+  categories: Category[];
+  subcategories: Subcategory[];
+  recurringRules: RecurringRule[];
+  goals: Goal[];
+  widgetConfigs: WidgetConfig[];
+  financialIndicatorPreferences: FinancialIndicatorPreference[];
+  importBatches: ImportBatch[];
+}
+
+export type CreateTransactionInput = Omit<Transaction, "id" | "createdAt" | "updatedAt">;
+export type UpdateTransactionInput = Partial<CreateTransactionInput>;
+export type CreateBudgetInput = Omit<Budget, "id" | "createdAt" | "updatedAt">;
+export type UpdateBudgetInput = Partial<CreateBudgetInput>;
+export type CreateCategoryInput = Omit<Category, "id" | "createdAt" | "updatedAt">;
+export type UpdateCategoryInput = Partial<CreateCategoryInput>;
+export type CreateGoalInput = Omit<Goal, "id" | "createdAt" | "updatedAt">;
+export type UpdateGoalInput = Partial<CreateGoalInput>;
+export type CreateWidgetConfigInput = Omit<WidgetConfig, "id" | "createdAt" | "updatedAt">;
+export type UpdateWidgetConfigInput = Partial<Omit<WidgetConfig, "id" | "createdAt" | "updatedAt">>;
