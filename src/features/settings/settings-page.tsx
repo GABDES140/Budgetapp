@@ -7,6 +7,10 @@ import {
   FileUp,
   FileWarning,
   Files,
+  Link2,
+  MailPlus,
+  ShieldCheck,
+  Users,
   Upload,
 } from "lucide-react";
 
@@ -28,6 +32,19 @@ import {
   type ImportPreview,
 } from "@/services/import-service";
 import { localBudgetAppDataService } from "@/services/local-data-service";
+import {
+  acceptSharedBudgetInvitation,
+  buildInvitationTokenPreview,
+  buildMemberRoleLabel,
+  createSharedBudgetInvitation,
+  formatInvitationExpiry,
+  getAccessibleBudgets,
+  getBudgetInvitations,
+  getBudgetMembersWithUsers,
+  getInvitationShareLink,
+  getPendingInvitationsForEmail,
+  isBudgetOwner,
+} from "@/services/shared-budget-service";
 import type { Budget, Category, EntityId, Subcategory, User } from "@/types";
 
 export function SettingsPage() {
@@ -36,6 +53,9 @@ export function SettingsPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [budgetInvitations, setBudgetInvitations] = useState<Awaited<ReturnType<typeof getBudgetInvitations>>>([]);
+  const [budgetMembers, setBudgetMembers] = useState<Awaited<ReturnType<typeof getBudgetMembersWithUsers>>>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<Awaited<ReturnType<typeof getPendingInvitationsForEmail>>>([]);
   const [activeBudgetId, setActiveBudgetId] = useState<EntityId>("");
   const [activeUserId, setActiveUserId] = useState<EntityId>("");
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -43,6 +63,9 @@ export function SettingsPage() {
   const [isReady, setIsReady] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [sharedBudgetError, setSharedBudgetError] = useState<string | null>(null);
+  const [isSubmittingInvite, setIsSubmittingInvite] = useState(false);
 
   useEffect(() => {
     void loadData();
@@ -50,16 +73,17 @@ export function SettingsPage() {
   }, []);
 
   const activeBudget = budgets.find((budget) => budget.id === activeBudgetId);
+  const activeUser = users.find((user) => user.id === activeUserId);
 
   async function loadData(nextBudgetId?: EntityId) {
     const data = await localBudgetAppDataService.getData();
     const preferredUserId = activeUserId || session?.userId;
     const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
+    const accessibleBudgets = user ? await getAccessibleBudgets(user.id) : [];
     const budget =
-      data.budgets.find((item) => item.id === nextBudgetId) ??
-      data.budgets.find((item) => item.id === activeBudgetId) ??
-      data.budgets.find((item) => item.ownerId === user?.id) ??
-      data.budgets[0];
+      accessibleBudgets.find((item) => item.id === nextBudgetId) ??
+      accessibleBudgets.find((item) => item.id === activeBudgetId) ??
+      accessibleBudgets[0];
 
     if (!user || !budget) {
       setIsReady(true);
@@ -67,11 +91,14 @@ export function SettingsPage() {
     }
 
     setUsers(data.users);
-    setBudgets(data.budgets);
+    setBudgets(accessibleBudgets);
     setCategories(data.categories);
     setSubcategories(data.subcategories);
     setActiveUserId(user.id);
     setActiveBudgetId(budget.id);
+    setBudgetMembers(await getBudgetMembersWithUsers(budget.id));
+    setBudgetInvitations(await getBudgetInvitations(budget.id));
+    setPendingInvitations(await getPendingInvitationsForEmail(user.email));
     setIsReady(true);
   }
 
@@ -155,6 +182,48 @@ export function SettingsPage() {
     setStatusMessage(`Export ${format.toUpperCase()} genere avec ${transactions.length} transaction(s).`);
   }
 
+  async function handleCreateInvitation() {
+    if (!activeBudget || !activeUser) {
+      return;
+    }
+
+    setSharedBudgetError(null);
+    setStatusMessage(null);
+    setIsSubmittingInvite(true);
+
+    try {
+      const invitation = await createSharedBudgetInvitation({
+        budget: activeBudget,
+        createdBy: activeUser,
+        email: inviteEmail,
+      });
+      setInviteEmail("");
+      await loadData(activeBudget.id);
+      setStatusMessage(`Invitation creee. Token local: ${buildInvitationTokenPreview(invitation)}`);
+    } catch (error) {
+      setSharedBudgetError(error instanceof Error ? error.message : "L'invitation n'a pas pu etre creee.");
+    } finally {
+      setIsSubmittingInvite(false);
+    }
+  }
+
+  async function handleAcceptInvitation(token: string) {
+    if (!activeUser) {
+      return;
+    }
+
+    setSharedBudgetError(null);
+    setStatusMessage(null);
+
+    try {
+      await acceptSharedBudgetInvitation(token, activeUser.id);
+      await loadData();
+      setStatusMessage("Invitation acceptee. Le budget partage est maintenant accessible.");
+    } catch (error) {
+      setSharedBudgetError(error instanceof Error ? error.message : "L'invitation n'a pas pu etre acceptee.");
+    }
+  }
+
   if (!isReady) {
     return (
       <PageTransition>
@@ -168,6 +237,146 @@ export function SettingsPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
+        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-xl">Budget partage</CardTitle>
+                  <CardDescription>Invitation locale simple, rattachement au budget et consultation commune des donnees.</CardDescription>
+                </div>
+                <Badge variant={activeBudget?.type === "shared" ? "secondary" : "outline"}>
+                  {activeBudget?.type === "shared" ? "Partage actif" : "Personnel"}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                <label className="grid gap-1.5 text-sm font-medium">
+                  <span>Inviter par courriel</span>
+                  <Input
+                    type="email"
+                    value={inviteEmail}
+                    placeholder="personne@exemple.com"
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    disabled={!isBudgetOwner(activeBudget, activeUserId)}
+                  />
+                </label>
+                <Button
+                  className="md:self-end"
+                  type="button"
+                  onClick={() => void handleCreateInvitation()}
+                  disabled={!isBudgetOwner(activeBudget, activeUserId) || !inviteEmail.trim() || isSubmittingInvite}
+                >
+                  <MailPlus className="h-4 w-4" aria-hidden="true" />
+                  {isSubmittingInvite ? "Envoi..." : "Inviter"}
+                </Button>
+              </div>
+              {!isBudgetOwner(activeBudget, activeUserId) ? (
+                <p className="text-sm text-muted-foreground">
+                  Seul le proprietaire du budget peut envoyer une invitation dans ce MVP.
+                </p>
+              ) : null}
+              {sharedBudgetError ? <p className="text-sm text-destructive">{sharedBudgetError}</p> : null}
+              <div className="grid gap-3 lg:grid-cols-2">
+                <SharedBudgetPanel
+                  icon={Users}
+                  title="Membres"
+                  description="Structure deja compatible avec les roles owner / member pour de futures permissions."
+                >
+                  <div className="space-y-2">
+                    {budgetMembers.length > 0 ? (
+                      budgetMembers.map(({ member, user }) => (
+                        <div key={member.id} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{user?.name ?? member.userId}</p>
+                            <p className="truncate text-xs text-muted-foreground">{user?.email ?? "Utilisateur local"}</p>
+                          </div>
+                          <Badge variant={member.role === "owner" ? "secondary" : "outline"}>
+                            {buildMemberRoleLabel(member)}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Aucun membre rattache a ce budget.</p>
+                    )}
+                  </div>
+                </SharedBudgetPanel>
+
+                <SharedBudgetPanel
+                  icon={Link2}
+                  title="Invitations"
+                  description="Simulation locale par email et token, sans envoi reel."
+                >
+                  <div className="space-y-2">
+                    {budgetInvitations.length > 0 ? (
+                      budgetInvitations.map((invitation) => (
+                        <div key={invitation.id} className="rounded-md border p-3 text-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{invitation.email}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                Token: {buildInvitationTokenPreview(invitation)}
+                              </p>
+                            </div>
+                            <Badge variant={invitation.status === "pending" ? "outline" : "secondary"}>
+                              {invitation.status === "pending" ? "En attente" : invitation.status === "accepted" ? "Acceptee" : "Expiree"}
+                            </Badge>
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Expire le {formatInvitationExpiry(invitation)}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            Lien local: {getInvitationShareLink(invitation)}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Aucune invitation pour ce budget.</p>
+                    )}
+                  </div>
+                </SharedBudgetPanel>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">Invitations recues</CardTitle>
+                  <CardDescription>
+                    Si ton courriel correspond a une invitation en attente, tu peux rejoindre un budget partage.
+                  </CardDescription>
+                </div>
+                <ShieldCheck className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {pendingInvitations.length > 0 ? (
+                pendingInvitations.map((invitation) => (
+                  <div key={invitation.id} className="rounded-lg border p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{invitation.email}</p>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">Token: {buildInvitationTokenPreview(invitation)}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Expire le {formatInvitationExpiry(invitation)}</p>
+                      </div>
+                      <Button type="button" variant="outline" onClick={() => void handleAcceptInvitation(invitation.token)}>
+                        Rejoindre
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                  Aucune invitation en attente pour ce compte.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.8fr)]">
           <Card>
             <CardHeader>
@@ -193,10 +402,13 @@ export function SettingsPage() {
                   className={selectClassName}
                   value={activeBudgetId}
                   onChange={(event) => {
-                    setActiveBudgetId(event.target.value);
+                    const nextBudgetId = event.target.value;
+                    setActiveBudgetId(nextBudgetId);
                     setPreview(null);
                     setImportError(null);
                     setStatusMessage(null);
+                    setSharedBudgetError(null);
+                    void loadData(nextBudgetId);
                   }}
                 >
                   {budgets.map((budget) => (
@@ -378,6 +590,33 @@ function ValidationItem({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border bg-muted/20 p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function SharedBudgetPanel({
+  children,
+  description,
+  icon: Icon,
+  title,
+}: {
+  children: ReactNode;
+  description: string;
+  icon: typeof Users;
+  title: string;
+}) {
+  return (
+    <div className="rounded-lg border bg-muted/20 p-4">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md border bg-background text-muted-foreground">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {children}
     </div>
   );
 }

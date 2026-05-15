@@ -34,6 +34,7 @@ import { formatCurrencyAmount, formatTransactionDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { getDashboardSummary, type DashboardSummary } from "@/services/analytics-service";
 import { localBudgetAppDataService } from "@/services/local-data-service";
+import { getAccessibleBudgets } from "@/services/shared-budget-service";
 import { createWidgetConfig, updateWidgetConfig } from "@/services/widget-service";
 import type { Budget, EntityId, User, WidgetConfig, WidgetKey } from "@/types";
 
@@ -113,10 +114,11 @@ export function DashboardPage() {
     let data = await localBudgetAppDataService.getData();
     const preferredUserId = nextUserId ?? activeUserId ?? session?.userId;
     const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
+    const accessibleBudgets = user ? await getAccessibleBudgets(user.id) : [];
     const budget =
-      data.budgets.find((item) => item.id === nextBudgetId) ??
-      data.budgets.find((item) => item.ownerId === user?.id) ??
-      data.budgets[0];
+      accessibleBudgets.find((item) => item.id === nextBudgetId) ??
+      accessibleBudgets.find((item) => item.id === activeBudgetId) ??
+      accessibleBudgets[0];
 
     if (!user || !budget) {
       setIsReady(true);
@@ -151,7 +153,7 @@ export function DashboardPage() {
     });
 
     setUsers(data.users);
-    setBudgets(data.budgets);
+    setBudgets(accessibleBudgets);
     setActiveUserId(user.id);
     setActiveBudgetId(budget.id);
     setSummary(nextSummary);

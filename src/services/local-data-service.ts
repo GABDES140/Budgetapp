@@ -9,6 +9,7 @@ import type {
   Budget,
   BudgetAppData,
   Category,
+  CreateInvitationInput,
   CreateFinancialIndicatorPreferenceInput,
   CreateBudgetInput,
   CreateCategoryInput,
@@ -18,6 +19,7 @@ import type {
   EntityId,
   FinancialIndicatorPreference,
   Goal,
+  Invitation,
   Transaction,
   UpdateFinancialIndicatorPreferenceInput,
   UpdateBudgetInput,
@@ -111,6 +113,15 @@ class LocalBudgetAppDataService implements BudgetAppDataRepository {
     return data.budgets;
   }
 
+  async listAccessibleBudgets(userId: EntityId) {
+    const data = await this.getData();
+    const memberBudgetIds = new Set(
+      data.budgetMembers.filter((member) => member.userId === userId).map((member) => member.budgetId),
+    );
+
+    return data.budgets.filter((budget) => budget.ownerId === userId || memberBudgetIds.has(budget.id));
+  }
+
   async getBudgetById(budgetId: EntityId) {
     const data = await this.getData();
     return data.budgets.find((budget) => budget.id === budgetId) ?? null;
@@ -139,6 +150,82 @@ class LocalBudgetAppDataService implements BudgetAppDataRepository {
       validateBudget(nextBudget);
       Object.assign(budget, input, { updatedAt: nowIsoString() });
       return budget;
+    });
+  }
+
+  async listBudgetMembers(budgetId?: EntityId) {
+    const data = await this.getData();
+    return data.budgetMembers.filter((member) => !budgetId || member.budgetId === budgetId);
+  }
+
+  async listInvitations(filters: { budgetId?: EntityId; email?: string; status?: Invitation["status"] } = {}) {
+    const data = await this.getData();
+
+    return data.invitations.filter((invitation) => {
+      return (
+        (!filters.budgetId || invitation.budgetId === filters.budgetId) &&
+        (!filters.email || invitation.email.toLowerCase() === filters.email.toLowerCase()) &&
+        (!filters.status || invitation.status === filters.status)
+      );
+    });
+  }
+
+  async createInvitation(input: CreateInvitationInput) {
+    validateInvitation(input);
+
+    return this.mutate((data) => {
+      const invitation: Invitation = {
+        ...input,
+        id: createEntityId("invite"),
+        createdAt: nowIsoString(),
+      };
+
+      data.invitations.push(invitation);
+      return invitation;
+    });
+  }
+
+  async acceptInvitation(token: string, userId: EntityId) {
+    return this.mutate((data) => {
+      const invitation = data.invitations.find((item) => item.token === token);
+
+      if (!invitation) {
+        throw new Error("Invitation introuvable.");
+      }
+
+      if (invitation.status !== "pending") {
+        throw new Error("Cette invitation n'est plus disponible.");
+      }
+
+      if (new Date(invitation.expiresAt).getTime() < Date.now()) {
+        invitation.status = "expired";
+        throw new Error("Cette invitation a expire.");
+      }
+
+      const user = findRequired(data.users, userId, "Utilisateur introuvable");
+
+      if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+        throw new Error("Cette invitation ne correspond pas au courriel du compte connecte.");
+      }
+
+      const alreadyMember = data.budgetMembers.some((member) => member.budgetId === invitation.budgetId && member.userId === userId);
+
+      if (!alreadyMember) {
+        data.budgetMembers.push({
+          id: createEntityId("member"),
+          budgetId: invitation.budgetId,
+          userId,
+          role: "member",
+          joinedAt: nowIsoString(),
+        });
+      }
+
+      invitation.status = "accepted";
+      const budget = findRequired(data.budgets, invitation.budgetId, "Budget introuvable");
+      budget.type = "shared";
+      budget.updatedAt = nowIsoString();
+
+      return invitation;
     });
   }
 
@@ -421,6 +508,21 @@ function validateGoal(input: Pick<Goal, "targetAmount" | "currentAmount" | "curr
   }
 
   assertCurrency(input.currency);
+}
+
+function validateInvitation(input: Pick<Invitation, "budgetId" | "email" | "status" | "token" | "createdBy" | "expiresAt">) {
+  assertRequired(input.budgetId, "Une invitation doit etre associee a un budget.");
+  validateEmail(input.email);
+  assertRequired(input.token, "Une invitation doit avoir un token local.");
+  assertRequired(input.createdBy, "Une invitation doit avoir un createur.");
+
+  if (!["pending", "accepted", "expired"].includes(input.status)) {
+    throw new Error("Le statut d'invitation est invalide.");
+  }
+
+  if (Number.isNaN(new Date(input.expiresAt).getTime())) {
+    throw new Error("La date d'expiration de l'invitation est invalide.");
+  }
 }
 
 function assertCurrency(currency: string) {

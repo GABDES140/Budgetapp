@@ -46,6 +46,7 @@ import {
   type AnalyticsSummary,
 } from "@/services/analytics-service";
 import { localBudgetAppDataService } from "@/services/local-data-service";
+import { getAccessibleBudgets } from "@/services/shared-budget-service";
 import type { Budget, Category, FinancialIndicatorPreference } from "@/types";
 
 type IndicatorDefinition = {
@@ -111,10 +112,11 @@ export function AnalyticsPage() {
     let data = await localBudgetAppDataService.getData();
     const preferredUserId = (nextFilters?.userId ?? filters.userId) || session?.userId;
     const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
+    const accessibleBudgets = user ? await getAccessibleBudgets(user.id) : [];
     const budget =
-      data.budgets.find((item) => item.id === nextFilters?.budgetId) ??
-      data.budgets.find((item) => item.ownerId === user?.id) ??
-      data.budgets[0];
+      accessibleBudgets.find((item) => item.id === nextFilters?.budgetId) ??
+      accessibleBudgets.find((item) => item.id === filters.budgetId) ??
+      accessibleBudgets[0];
 
     if (!user || !budget) {
       return null;
@@ -158,7 +160,7 @@ export function AnalyticsPage() {
     });
 
     return {
-      budgets: data.budgets,
+      budgets: accessibleBudgets,
       categories: data.categories,
       filters: mergedFilters,
       summary: nextSummary,

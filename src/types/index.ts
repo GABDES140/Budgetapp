@@ -188,3 +188,4 @@ export type LoginUserInput = {
   email: string;
   password: string;
 };
+export type CreateInvitationInput = Omit<Invitation, "id" | "createdAt">;

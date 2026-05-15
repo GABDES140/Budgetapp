@@ -16,6 +16,7 @@ import { formatCurrencyAmount } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { createGoal, deleteGoal, getGoals, updateGoal } from "@/services/goal-service";
 import { localBudgetAppDataService } from "@/services/local-data-service";
+import { getAccessibleBudgets } from "@/services/shared-budget-service";
 import type { Budget, EntityId, Goal, GoalStatus, User } from "@/types";
 
 type GoalFormState = {
@@ -97,11 +98,11 @@ export function GoalsPage() {
     const data = await localBudgetAppDataService.getData();
     const preferredUserId = activeUserId || session?.userId;
     const user = data.users.find((item) => item.id === preferredUserId) ?? data.users[0];
+    const accessibleBudgets = user ? await getAccessibleBudgets(user.id) : [];
     const budget =
-      data.budgets.find((item) => item.id === nextBudgetId) ??
-      data.budgets.find((item) => item.id === activeBudgetId) ??
-      data.budgets.find((item) => item.ownerId === user?.id) ??
-      data.budgets[0];
+      accessibleBudgets.find((item) => item.id === nextBudgetId) ??
+      accessibleBudgets.find((item) => item.id === activeBudgetId) ??
+      accessibleBudgets[0];
 
     if (!user || !budget) {
       setIsReady(true);
@@ -109,7 +110,7 @@ export function GoalsPage() {
     }
 
     setUsers(data.users);
-    setBudgets(data.budgets);
+    setBudgets(accessibleBudgets);
     setGoals(await getGoals());
     setActiveUserId(user.id);
     setActiveBudgetId(budget.id);

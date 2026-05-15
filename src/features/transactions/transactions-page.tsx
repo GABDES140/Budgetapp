@@ -24,6 +24,7 @@ import { SUPPORTED_CURRENCIES } from "@/lib/constants/currencies";
 import { formatCurrencyAmount, formatTransactionDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { localBudgetAppDataService } from "@/services/local-data-service";
+import { getAccessibleBudgets } from "@/services/shared-budget-service";
 import {
   createTransaction,
   deleteTransaction,
@@ -206,10 +207,11 @@ export function TransactionsPage() {
   async function loadData() {
     const data = await localBudgetAppDataService.getData();
     const defaultUser = data.users.find((user) => user.id === session?.userId) ?? data.users[0];
-    const defaultBudget = data.budgets.find((budget) => budget.ownerId === defaultUser?.id) ?? data.budgets[0];
+    const accessibleBudgets = defaultUser ? await getAccessibleBudgets(defaultUser.id) : [];
+    const defaultBudget = accessibleBudgets.find((budget) => budget.id === activeBudgetId) ?? accessibleBudgets[0];
 
     setUsers(data.users);
-    setBudgets(data.budgets);
+    setBudgets(accessibleBudgets);
     setTransactions(data.transactions);
     setCategories(data.categories);
     setSubcategories(data.subcategories);
