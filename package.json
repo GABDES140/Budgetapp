@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "backend:dev": "tsx watch src/backend/server.ts",
+    "backend:start": "tsx src/backend/server.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -21,6 +23,8 @@
     "@radix-ui/react-tooltip": "latest",
     "class-variance-authority": "latest",
     "clsx": "latest",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "framer-motion": "latest",
     "lucide-react": "latest",
     "next": "latest",
@@ -30,10 +34,13 @@
     "recharts": "latest",
     "tailwind-merge": "latest",
     "tailwindcss-animate": "latest",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "latest",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
@@ -42,6 +49,7 @@
     "eslint-config-next": "latest",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.22.0",
     "typescript": "latest"
   }
 }
