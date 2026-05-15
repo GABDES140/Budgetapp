@@ -1,11 +1,16 @@
 import type { CreateCategoryInput, EntityId, UpdateCategoryInput } from "../../../types";
-
 import { HttpError } from "../../lib/http-error";
 
-import { CategoryRepository } from "./category.repository";
+type CategoryRepositoryContract = {
+  findAll: (filters: { budgetId?: EntityId }) => Promise<unknown>;
+  findById: (id: EntityId) => Promise<unknown>;
+  create: (input: CreateCategoryInput) => Promise<unknown>;
+  update: (id: EntityId, input: UpdateCategoryInput) => Promise<unknown>;
+  delete: (id: EntityId) => Promise<void>;
+};
 
 export class CategoryService {
-  constructor(private readonly repository: CategoryRepository) {}
+  constructor(private readonly repository: CategoryRepositoryContract) {}
 
   async list(filters: { budgetId?: EntityId }) {
     return this.repository.findAll(filters);

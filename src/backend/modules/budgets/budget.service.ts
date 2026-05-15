@@ -1,11 +1,16 @@
 import type { CreateBudgetInput, EntityId, UpdateBudgetInput } from "../../../types";
-
 import { HttpError } from "../../lib/http-error";
 
-import { BudgetRepository } from "./budget.repository";
+type BudgetRepositoryContract = {
+  findAll: (filters: { ownerId?: EntityId }) => Promise<unknown>;
+  findById: (id: EntityId) => Promise<unknown>;
+  create: (input: CreateBudgetInput) => Promise<unknown>;
+  update: (id: EntityId, input: UpdateBudgetInput) => Promise<unknown>;
+  delete: (id: EntityId) => Promise<void>;
+};
 
 export class BudgetService {
-  constructor(private readonly repository: BudgetRepository) {}
+  constructor(private readonly repository: BudgetRepositoryContract) {}
 
   async list(filters: { ownerId?: EntityId }) {
     return this.repository.findAll(filters);

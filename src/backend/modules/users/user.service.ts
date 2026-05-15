@@ -1,11 +1,16 @@
 import type { EntityId, User } from "../../../types";
-
 import { HttpError } from "../../lib/http-error";
 
-import { UserRepository } from "./user.repository";
+type UserRepositoryContract = {
+  findAll: (filters: { email?: string }) => Promise<User[]>;
+  findById: (id: EntityId) => Promise<User | null>;
+  create: (input: Omit<User, "id" | "createdAt" | "updatedAt">) => Promise<User>;
+  update: (id: EntityId, input: Partial<Omit<User, "id" | "createdAt" | "updatedAt">>) => Promise<User>;
+  delete: (id: EntityId) => Promise<void>;
+};
 
 export class UserService {
-  constructor(private readonly repository: UserRepository) {}
+  constructor(private readonly repository: UserRepositoryContract) {}
 
   async list(filters: { email?: string }) {
     const users = await this.repository.findAll(filters);

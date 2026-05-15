@@ -6,3 +6,11 @@ export function getBackendPort() {
 export function getRepositoryMode() {
   return process.env.BUDGETAPP_REPOSITORY_MODE === "postgres" ? "postgres" : "file";
 }
+
+export function getDatabaseUrl() {
+  return process.env.DATABASE_URL ?? "";
+}
+
+export function getDatabaseSslEnabled() {
+  return process.env.DATABASE_SSL === "true";
+}

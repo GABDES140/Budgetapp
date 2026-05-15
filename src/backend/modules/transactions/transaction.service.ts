@@ -1,11 +1,16 @@
 import type { CreateTransactionInput, EntityId, UpdateTransactionInput } from "../../../types";
-
 import { HttpError } from "../../lib/http-error";
 
-import { TransactionRepository } from "./transaction.repository";
+type TransactionRepositoryContract = {
+  findAll: (filters: { budgetId?: EntityId; userId?: EntityId }) => Promise<unknown>;
+  findById: (id: EntityId) => Promise<unknown>;
+  create: (input: CreateTransactionInput) => Promise<unknown>;
+  update: (id: EntityId, input: UpdateTransactionInput) => Promise<unknown>;
+  delete: (id: EntityId) => Promise<void>;
+};
 
 export class TransactionService {
-  constructor(private readonly repository: TransactionRepository) {}
+  constructor(private readonly repository: TransactionRepositoryContract) {}
 
   async list(filters: { budgetId?: EntityId; userId?: EntityId }) {
     return this.repository.findAll(filters);

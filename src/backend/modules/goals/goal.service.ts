@@ -1,11 +1,16 @@
 import type { CreateGoalInput, EntityId, UpdateGoalInput } from "../../../types";
-
 import { HttpError } from "../../lib/http-error";
 
-import { GoalRepository } from "./goal.repository";
+type GoalRepositoryContract = {
+  findAll: (filters: { budgetId?: EntityId }) => Promise<unknown>;
+  findById: (id: EntityId) => Promise<unknown>;
+  create: (input: CreateGoalInput) => Promise<unknown>;
+  update: (id: EntityId, input: UpdateGoalInput) => Promise<unknown>;
+  delete: (id: EntityId) => Promise<void>;
+};
 
 export class GoalService {
-  constructor(private readonly repository: GoalRepository) {}
+  constructor(private readonly repository: GoalRepositoryContract) {}
 
   async list(filters: { budgetId?: EntityId }) {
     return this.repository.findAll(filters);
